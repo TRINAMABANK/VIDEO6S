@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Activity, CheckCircle2, Loader2, Terminal, ChevronDown, ChevronUp, Sparkles, Cloud, Check } from 'lucide-react';
-import type { ProcessStep, N8nWebhookResponse } from '../../types';
+import type { ProcessStep, N8nResponse } from '../../types';
 
 interface ProgressTrackerProps {
   steps: ProcessStep[];
@@ -8,7 +8,7 @@ interface ProgressTrackerProps {
   isProcessing: boolean;
   logs: string[];
   jobId?: string;
-  n8nResponse?: N8nWebhookResponse | null;
+  n8nResponse?: N8nResponse | null;
 }
 
 export const ProgressTracker: React.FC<ProgressTrackerProps> = ({
@@ -66,9 +66,9 @@ export const ProgressTracker: React.FC<ProgressTrackerProps> = ({
         </div>
       </div>
 
-      {/* High-visibility "ĐÃ NHẬN YÊU CẦU" N8N Banner */}
+      {/* High-visibility "ĐÃ NHẬN YÊU CẦU / ĐÃ GỬI SANG N8N" Banner */}
       {n8nResponse && (
-        <div className="bg-gradient-to-r from-emerald-500 via-teal-600 to-emerald-600 text-white p-3.5 px-5 flex flex-col sm:flex-row sm:items-center justify-between gap-2 shadow-inner">
+        <div className="bg-gradient-to-r from-emerald-500 via-teal-600 to-emerald-600 text-white p-3.5 px-5 flex flex-col sm:flex-row sm:items-center justify-between gap-2 shadow-inner animate-fade-in">
           <div className="flex items-center space-x-2.5">
             <div className="w-7 h-7 rounded-lg bg-white/20 flex items-center justify-center backdrop-blur-sm">
               <Cloud className="w-4 h-4 text-white" />
@@ -79,18 +79,18 @@ export const ProgressTracker: React.FC<ProgressTrackerProps> = ({
                   n8n Webhook
                 </span>
                 <span className="font-black text-sm tracking-wide">
-                  ĐÃ NHẬN YÊU CẦU
+                  ĐÃ GỬI SANG n8n • {n8nResponse.message || 'Đã nhận yêu cầu'}
                 </span>
               </div>
               <p className="text-[11px] text-emerald-100 font-medium mt-0.5">
-                Đã nhận thành công 2 file (Sách: {n8nResponse.files_received?.book || 'BOOK'} & KOL: {n8nResponse.files_received?.kol || 'KOL'})
+                Trạng thái: <span className="font-bold text-white uppercase">{n8nResponse.status || 'received'}</span> • Nhận thành công 2 file BOOK & KOL
               </p>
             </div>
           </div>
 
           <div className="flex items-center gap-2 font-mono text-xs bg-black/20 px-3 py-1.5 rounded-xl border border-white/20 self-start sm:self-auto">
-            <span className="text-emerald-200 font-bold">MÃ JOB:</span>
-            <span className="font-extrabold text-white">{n8nResponse.job_id}</span>
+            <span className="text-emerald-200 font-bold">JOB ID:</span>
+            <span className="font-extrabold text-white">{n8nResponse.job_id || jobId}</span>
             <Check className="w-3.5 h-3.5 text-emerald-300 ml-1" />
           </div>
         </div>

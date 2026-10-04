@@ -4,7 +4,6 @@ export interface UploadedMedia {
   name: string;
   size: number;
   type: string;
-  uploadedAt?: Date;
 }
 
 export type ProcessStepStatus = 'idle' | 'running' | 'completed' | 'error';
@@ -70,14 +69,10 @@ export interface AppSettings {
   useN8nWebhook: boolean;
 }
 
-export interface N8nWebhookResponse {
+export interface N8nResponse {
   success: boolean;
-  job_id: string;
-  status: string; // e.g. "RECEIVED" | "Đã nhận yêu cầu"
-  message: string;
-  received_at?: string;
-  files_received?: {
-    book: string;
-    kol: string;
-  };
+  job_id?: string;
+  status?: string;
+  message?: string;
+  [key: string]: unknown;
 }
