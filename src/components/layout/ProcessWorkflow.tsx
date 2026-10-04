@@ -1,19 +1,18 @@
 import React from 'react';
-import { UploadCloud, BrainCircuit, Image as ImageIcon, Film, CheckCircle2, HardDrive } from 'lucide-react';
-import { DEFAULT_WORKFLOW_STEPS } from '../../constants/mockData';
+import { Image, Bot, Sparkles, Play, CheckCircle, HardDrive, ArrowRight } from 'lucide-react';
 
 interface ProcessWorkflowProps {
   currentStepIndex?: number;
   isProcessing?: boolean;
 }
 
-const STEP_ICONS = [
-  UploadCloud,
-  BrainCircuit,
-  ImageIcon,
-  Film,
-  CheckCircle2,
-  HardDrive
+const STEPS = [
+  { id: 1, title: 'Upload sách + KOL', icon: Image, color: 'bg-blue-600' },
+  { id: 2, title: 'AI phân tích & storyboard', icon: Bot, color: 'bg-purple-600' },
+  { id: 3, title: 'Tạo ảnh quảng cáo', icon: Sparkles, color: 'bg-blue-600' },
+  { id: 4, title: 'Tạo video 6 giây', icon: Play, color: 'bg-blue-600' },
+  { id: 5, title: 'Kiểm tra chất lượng', icon: CheckCircle, color: 'bg-emerald-600' },
+  { id: 6, title: 'Lưu vào Google Drive', icon: HardDrive, color: 'bg-amber-600' }
 ];
 
 export const ProcessWorkflow: React.FC<ProcessWorkflowProps> = ({
@@ -21,80 +20,55 @@ export const ProcessWorkflow: React.FC<ProcessWorkflowProps> = ({
   isProcessing = false
 }) => {
   return (
-    <div className="bg-white/90 backdrop-blur rounded-2xl p-4 sm:p-6 border border-slate-200/80 shadow-card">
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-4 pb-3 border-b border-slate-100 gap-2">
-        <div>
-          <span className="text-xs font-bold text-brand-600 uppercase tracking-wider">
-            Pipeline Tự Động Hóa 100%
-          </span>
-          <h2 className="text-base sm:text-lg font-bold text-slate-900">
-            Quy trình sản xuất video quảng cáo 6 bước
-          </h2>
-        </div>
-        <div className="flex items-center gap-2 text-xs font-medium text-slate-500">
-          <span className="inline-block w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
-          <span>Tự động tối ưu hóa cho TikTok & Reels</span>
-        </div>
-      </div>
+    <div className="w-full flex items-center justify-between overflow-x-auto py-2 px-1">
+      {STEPS.map((step, idx) => {
+        const Icon = step.icon;
+        const isCompleted = !isProcessing && currentStepIndex >= 7
+          ? true
+          : isProcessing && Math.floor((currentStepIndex / 8) * 6) > idx;
+        const isActive = isProcessing && Math.floor((currentStepIndex / 8) * 6) === idx;
 
-      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
-        {DEFAULT_WORKFLOW_STEPS.map((stepTitle, idx) => {
-          const Icon = STEP_ICONS[idx] || CheckCircle2;
-          
-          // Map the 8 sub-steps to the 6 main workflow steps
-          const isWorkflowActive = isProcessing && Math.floor((currentStepIndex / 8) * 6) === idx;
-          const isWorkflowCompleted = !isProcessing && currentStepIndex >= 7 
-            ? true 
-            : (isProcessing && Math.floor((currentStepIndex / 8) * 6) > idx);
-
-          return (
-            <div
-              key={idx}
-              className={`relative flex flex-col p-3 rounded-xl border transition-all duration-300 ${
-                isWorkflowActive
-                  ? 'bg-brand-50/80 border-brand-400 ring-2 ring-brand-300 shadow-sm'
-                  : isWorkflowCompleted
-                  ? 'bg-emerald-50/60 border-emerald-300 text-emerald-950'
-                  : 'bg-slate-50/70 border-slate-200/80 text-slate-700 hover:bg-slate-100/60'
-              }`}
-            >
-              <div className="flex items-center justify-between mb-2">
+        return (
+          <React.Fragment key={step.id}>
+            <div className="flex flex-col items-center text-center min-w-[95px] sm:min-w-[120px] group">
+              <div className="relative mb-2">
                 <div
-                  className={`w-7 h-7 rounded-lg flex items-center justify-center text-xs font-bold ${
-                    isWorkflowActive
-                      ? 'bg-brand-600 text-white animate-bounce'
-                      : isWorkflowCompleted
-                      ? 'bg-emerald-600 text-white'
-                      : 'bg-slate-200 text-slate-600'
+                  className={`w-11 h-11 rounded-2xl flex items-center justify-center transition-transform ${
+                    isCompleted
+                      ? 'bg-emerald-500 text-white shadow-sm'
+                      : isActive
+                      ? 'bg-indigo-600 text-white ring-4 ring-indigo-200 animate-bounce'
+                      : idx === 0
+                      ? 'bg-blue-500 text-white shadow-sm'
+                      : idx === 1
+                      ? 'bg-purple-500 text-white shadow-sm'
+                      : idx === 4
+                      ? 'bg-emerald-500 text-white shadow-sm'
+                      : idx === 5
+                      ? 'bg-amber-500 text-white shadow-sm'
+                      : 'bg-blue-500 text-white shadow-sm'
                   }`}
                 >
-                  {isWorkflowCompleted ? '✓' : idx + 1}
+                  <Icon className="w-5 h-5" />
                 </div>
-                <Icon
-                  className={`w-4 h-4 ${
-                    isWorkflowActive
-                      ? 'text-brand-600'
-                      : isWorkflowCompleted
-                      ? 'text-emerald-600'
-                      : 'text-slate-400'
-                  }`}
-                />
+                <span className="absolute -top-1.5 -left-1.5 w-5 h-5 bg-indigo-600 text-white rounded-full text-[10px] font-bold flex items-center justify-center border-2 border-white shadow-sm">
+                  {isCompleted ? '✓' : step.id}
+                </span>
               </div>
 
-              <span className="text-xs font-semibold leading-snug line-clamp-2">
-                {stepTitle.replace(/^\d+\.\s*/, '')}
+              <span className="text-xs font-semibold text-slate-700 leading-tight max-w-[110px]">
+                {step.title}
               </span>
-
-              {/* Progress bar line between items on desktop */}
-              {idx < DEFAULT_WORKFLOW_STEPS.length - 1 && (
-                <div className="hidden lg:block absolute -right-2 top-1/2 -translate-y-1/2 z-10 text-slate-300 text-xs">
-                  →
-                </div>
-              )}
             </div>
-          );
-        })}
-      </div>
+
+            {idx < STEPS.length - 1 && (
+              <div className="flex-1 flex justify-center items-center px-1 text-slate-300">
+                <ArrowRight className="w-4 h-4 text-slate-300" />
+              </div>
+            )}
+          </React.Fragment>
+        );
+      })}
     </div>
   );
 };

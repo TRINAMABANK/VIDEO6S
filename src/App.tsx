@@ -16,7 +16,7 @@ import { INITIAL_PROCESS_STEPS, DEFAULT_STORYBOARD, DEFAULT_DRIVE_FILES, SAMPLE_
 import { VideoFactoryService, mediaToFile } from './services/videoFactoryService';
 import { N8N_WEBHOOK_URL } from './config/env';
 import { triggerCelebration } from './utils/helpers';
-import { CheckCircle2, AlertTriangle, Settings as SettingsIcon } from 'lucide-react';
+import { AlertTriangle, Settings as SettingsIcon } from 'lucide-react';
 
 export const App: React.FC = () => {
   // Navigation & Modals
@@ -31,17 +31,37 @@ export const App: React.FC = () => {
     };
   });
 
-  // Upload States
-  const [bookMedia, setBookMedia] = useState<UploadedMedia | null>(null);
-  const [kolMedia, setKolMedia] = useState<UploadedMedia | null>(null);
+  // Upload States (Default pre-loaded with sample images matching screenshot)
+  const [bookMedia, setBookMedia] = useState<UploadedMedia | null>({
+    file: null,
+    name: '01_BOOK.jpg',
+    size: 1024 * 850,
+    type: 'image/jpeg',
+    previewUrl: 'https://images.unsplash.com/photo-1544947950-fa07a98d237f?auto=format&fit=crop&w=600&q=80'
+  });
+
+  const [kolMedia, setKolMedia] = useState<UploadedMedia | null>({
+    file: null,
+    name: '02_KOL.jpg',
+    size: 1024 * 920,
+    type: 'image/jpeg',
+    previewUrl: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=600&q=80'
+  });
 
   // Generation Execution States
   const [isProcessing, setIsProcessing] = useState(false);
   const [isCompleted, setIsCompleted] = useState(false);
-  const [currentStepIndex, setCurrentStepIndex] = useState(0);
-  const [processSteps, setProcessSteps] = useState<ProcessStep[]>(INITIAL_PROCESS_STEPS);
+  const [currentStepIndex, setCurrentStepIndex] = useState(4); // Default at active state for presentation
+  const [processSteps, setProcessSteps] = useState<ProcessStep[]>(() => {
+    return INITIAL_PROCESS_STEPS.map((s, idx) => {
+      if (idx < 4) return { ...s, status: 'completed' as const, timestamp: `14:2${5 + Math.floor(idx * 0.4)}` };
+      if (idx === 4) return { ...s, status: 'running' as const, timestamp: '14:27' };
+      return { ...s, status: 'idle' as const };
+    });
+  });
+
   const [executionLogs, setExecutionLogs] = useState<string[]>([]);
-  const [currentJobId, setCurrentJobId] = useState('JOB-0001');
+  const [currentJobId, setCurrentJobId] = useState('JOB-0001_DAC-NHAN-TAM');
   const [n8nJobResponse, setN8nJobResponse] = useState<N8nResponse | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
@@ -64,19 +84,6 @@ export const App: React.FC = () => {
     if (tab === 'settings') setIsSettingsOpen(true);
   };
 
-  // Reset entire state
-  const handleReset = () => {
-    setBookMedia(null);
-    setKolMedia(null);
-    setIsProcessing(false);
-    setIsCompleted(false);
-    setCurrentStepIndex(0);
-    setN8nJobResponse(null);
-    setErrorMessage(null);
-    setProcessSteps(INITIAL_PROCESS_STEPS.map(s => ({ ...s, status: 'idle' })));
-    setExecutionLogs([]);
-  };
-
   // Active webhook URL check
   const activeWebhookUrl = settings.n8nWebhookUrl || N8N_WEBHOOK_URL;
   const isWebhookConfigured = Boolean(
@@ -86,16 +93,9 @@ export const App: React.FC = () => {
   );
 
   /**
-   * BƯỚC 2: LOGIC GỬI N8N WEBHOOK
-   * 1. Kiểm tra bookFile
-   * 2. Kiểm tra kolFile
-   * 3. Nếu thiếu -> báo lỗi
-   * 4. Nếu đủ -> gọi sendToN8n(bookFile, kolFile)
-   * 5. Hiển thị trạng thái "Đang gửi dữ liệu..."
-   * 6. Nhận job_id -> Hiển thị Job ID & "Đã gửi sang n8n" / "Đã nhận yêu cầu"
+   * Main Button Action: BƯỚC 2 N8N WEBHOOK
    */
   const handleStartGenerate = async () => {
-    // 1. Kiểm tra bookFile & kolFile
     if (!bookMedia || !kolMedia) {
       alert('Vui lòng upload đủ 1 ảnh cuốn sách và 1 ảnh KOL trước khi tạo video.');
       return;
@@ -114,21 +114,14 @@ export const App: React.FC = () => {
     setProcessSteps(cleanSteps);
 
     setExecutionLogs([
-      `[${now.toLocaleTimeString()}] 🚀 [ANTIGRAVITY] Khởi chạy: Đang chuẩn bị gửi ảnh Sách ("${bookMedia.name}") & KOL ("${kolMedia.name}")...`
+      `[${now.toLocaleTimeString()}] 🚀 [ANTIGRAVITY] Bắt đầu phiên làm việc: Gửi Sách & KOL tới N8N WEBHOOK...`
     ]);
 
     try {
-      // Convert to standard File objects
       const bookFile = await mediaToFile(bookMedia, '01_BOOK.jpg');
       const kolFile = await mediaToFile(kolMedia, '02_KOL.jpg');
 
       if (isWebhookConfigured) {
-        // GỬI LÊN N8N WEBHOOK THỰC TẾ
-        setExecutionLogs(prev => [
-          `[${new Date().toLocaleTimeString()}] 📡 [n8n Webhook] Đang gửi dữ liệu (POST multipart/form-data) tới: ${activeWebhookUrl}...`,
-          ...prev
-        ]);
-
         cleanSteps[0].status = 'running';
         cleanSteps[0].timestamp = new Date().toLocaleTimeString();
         setProcessSteps([...cleanSteps]);
@@ -136,7 +129,6 @@ export const App: React.FC = () => {
         const n8nRes = await VideoFactoryService.sendToN8n(bookFile, kolFile, activeWebhookUrl);
         const jobId = n8nRes.job_id || `JOB-${String(Math.floor(Math.random() * 9000) + 1000)}`;
 
-        // CẬP NHẬT TRẠNG THÁI "ĐÃ GỬI SANG n8n" & NHẬN JOB ID
         setN8nJobResponse(n8nRes);
         setCurrentJobId(jobId);
 
@@ -144,12 +136,6 @@ export const App: React.FC = () => {
         cleanSteps[0].description = `n8n đã nhận 2 file • Mã Job: ${jobId}`;
         setProcessSteps([...cleanSteps]);
 
-        setExecutionLogs(prev => [
-          `[${new Date().toLocaleTimeString()}] ✅ [n8n Webhook 200 OK] Nhận phản hồi thành công: "${n8nRes.message || 'Files received'}" | JOB_ID: ${jobId}`,
-          ...prev
-        ]);
-
-        // Cập nhật kết quả & Drive files
         setIsCompleted(true);
         setIsProcessing(false);
         triggerCelebration();
@@ -162,27 +148,16 @@ export const App: React.FC = () => {
           bookImage: bookMedia,
           kolImage: kolMedia,
           storyboard: DEFAULT_STORYBOARD,
-          driveFiles: DEFAULT_DRIVE_FILES.map(file => ({
-            ...file,
-            previewUrl: file.name.includes('BOOK') ? bookMedia.previewUrl || undefined : 
-                        file.name.includes('KOL') ? kolMedia.previewUrl || undefined : undefined
-          })),
-          caption: `${SAMPLE_CAPTION.title}\n\n${SAMPLE_CAPTION.body}\n\n${SAMPLE_CAPTION.cta}`,
-          hashtags: SAMPLE_CAPTION.hashtags,
-          executionLogs: [
-            `[${new Date().toLocaleTimeString()}] ✅ [n8n Webhook] Gửi 2 tệp thành công. Trạng thái: "Đã nhận yêu cầu" • JOB_ID: ${jobId}`
-          ]
+          driveFiles: DEFAULT_DRIVE_FILES,
+          caption: captionText,
+          hashtags,
+          executionLogs
         };
 
         setHistoryJobs(prev => [newJob, ...prev]);
 
       } else {
-        // CHẾ ĐỘ DEMO SIMULATION (Khi chưa cấu hình URL n8n thực tế)
-        setExecutionLogs(prev => [
-          `[${new Date().toLocaleTimeString()}] 💡 [Test Mode] n8n Webhook URL chưa được cấu hình. Đang chạy mô phỏng tiến trình...`,
-          ...prev
-        ]);
-
+        // DEMO SIMULATION MODE
         await VideoFactoryService.runDemoSimulation(
           bookMedia,
           kolMedia,
@@ -204,7 +179,6 @@ export const App: React.FC = () => {
               setDriveFiles(result.driveFiles);
               setCaptionText(result.caption);
               setHashtags(result.hashtags);
-
               triggerCelebration();
 
               const newJob: GenerationJob = {
@@ -234,10 +208,6 @@ export const App: React.FC = () => {
       console.error(err);
       setIsProcessing(false);
       setErrorMessage(err.message || 'Lỗi khi gửi dữ liệu lên n8n Webhook.');
-      setExecutionLogs(prev => [
-        `[${new Date().toLocaleTimeString()}] ❌ [LỖI WEBHOOK] ${err.message || 'Không thể kết nối n8n'}`,
-        ...prev
-      ]);
     }
   };
 
@@ -254,145 +224,127 @@ export const App: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-slate-50 flex flex-col selection:bg-brand-500 selection:text-white">
-      {/* 1. Header */}
+    <div className="min-h-screen bg-[#f3f6fc] flex flex-col selection:bg-brand-500 selection:text-white font-sans">
+      {/* 1. Header (Dark Navy Theme) */}
       <Header
         activeTab={activeNavTab}
         onTabChange={handleTabChange}
         historyCount={historyJobs.length}
       />
 
-      {/* Main Content Area */}
-      <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8 space-y-6">
+      {/* Main Dashboard Layout */}
+      <main className="flex-1 max-w-[1520px] w-full mx-auto px-4 sm:px-6 py-5 sm:py-6 space-y-5">
         
-        {/* Webhook Configuration Status Notice (If not yet configured) */}
-        {!isWebhookConfigured && (
-          <div className="bg-amber-50 border border-amber-300/80 rounded-2xl p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs text-amber-900 shadow-sm">
-            <div className="flex items-center space-x-3">
-              <div className="w-8 h-8 rounded-xl bg-amber-200 text-amber-800 flex items-center justify-center flex-shrink-0">
-                <AlertTriangle className="w-4 h-4" />
-              </div>
-              <div>
-                <span className="font-extrabold text-sm text-amber-950">
-                  ⚠️ n8n Webhook chưa được cấu hình
-                </span>
-                <p className="text-amber-800 text-[11px] mt-0.5">
-                  Đang chạy ở chế độ <strong>Demo Mode</strong>. Bạn có thể cấu hình <code>VITE_N8N_WEBHOOK_URL</code> trong file <code>.env</code> hoặc bấm Cài đặt để nhập URL Webhook.
-                </p>
-              </div>
-            </div>
+        {/* Top Hero Title & Subtitle */}
+        <div className="text-center max-w-4xl mx-auto space-y-1.5 pt-1">
+          <h1 className="text-2xl sm:text-3xl md:text-[32px] font-black text-slate-900 tracking-tight">
+            Tạo Video Quảng Cáo Sách 6 Giây
+          </h1>
+          <p className="text-xs sm:text-sm text-slate-600 max-w-3xl mx-auto leading-relaxed">
+            Chỉ cần upload ảnh cuốn sách và ảnh KOL, hệ thống sẽ tự động tạo video, lưu vào Google Drive với đầy đủ storyboard, hình ảnh và caption.
+          </p>
+        </div>
 
+        {/* 6 Steps Process Workflow Bar */}
+        <div className="bg-white rounded-2xl border border-slate-200/80 shadow-sm p-4 sm:px-8">
+          <ProcessWorkflow
+            currentStepIndex={currentStepIndex}
+            isProcessing={isProcessing}
+          />
+        </div>
+
+        {/* Warning Banner (If n8n not configured) */}
+        {!isWebhookConfigured && (
+          <div className="bg-amber-50 border border-amber-300/80 rounded-xl p-3 px-4 flex items-center justify-between text-xs text-amber-900 shadow-sm">
+            <div className="flex items-center space-x-2">
+              <AlertTriangle className="w-4 h-4 text-amber-600 flex-shrink-0" />
+              <span>
+                <strong>⚠️ n8n Webhook:</strong> Đang chạy ở chế độ <strong>Demo Simulation</strong>. Bạn có thể nhập webhook URL thực tế trong mục Cài đặt.
+              </span>
+            </div>
             <button
               onClick={() => setIsSettingsOpen(true)}
-              className="px-3.5 py-2 rounded-xl bg-amber-600 hover:bg-amber-700 text-white font-bold flex items-center gap-1.5 self-start sm:self-auto shadow-sm transition-colors"
+              className="text-amber-800 hover:text-amber-950 font-bold underline flex items-center gap-1"
             >
               <SettingsIcon className="w-3.5 h-3.5" />
-              <span>Cấu hình n8n URL</span>
+              <span>Cài đặt URL</span>
             </button>
           </div>
         )}
-
-        {/* 2. Process Workflow (6 Steps Overview) */}
-        <ProcessWorkflow
-          currentStepIndex={currentStepIndex}
-          isProcessing={isProcessing}
-        />
-
-        {/* 3. Upload Section (Card 1: Sách, Card 2: KOL & Main CTA Button) */}
-        <UploadSection
-          bookMedia={bookMedia}
-          kolMedia={kolMedia}
-          onBookMediaChange={setBookMedia}
-          onKolMediaChange={setKolMedia}
-          onStartGenerate={handleStartGenerate}
-          isProcessing={isProcessing}
-          onReset={handleReset}
-        />
 
         {/* Error Alert Display */}
         {errorMessage && (
-          <div className="bg-rose-50 border-2 border-rose-300 rounded-2xl p-4 text-xs text-rose-900 flex items-center justify-between">
-            <div className="flex items-center space-x-2.5">
-              <span className="font-bold text-rose-700">Lỗi gửi n8n:</span>
-              <span>{errorMessage}</span>
-            </div>
-            <button
-              onClick={() => setErrorMessage(null)}
-              className="text-rose-600 hover:text-rose-800 font-bold px-2 py-1"
-            >
-              Đóng
-            </button>
+          <div className="bg-rose-50 border border-rose-300 rounded-xl p-3 px-4 text-xs text-rose-900 flex items-center justify-between">
+            <span><strong>Lỗi Webhook:</strong> {errorMessage}</span>
+            <button onClick={() => setErrorMessage(null)} className="font-bold text-rose-700">Đóng</button>
           </div>
         )}
 
-        {/* 4. n8n Status Live Bar (Hiển thị khi n8n đã nhận 2 file và trả JOB_ID) */}
-        {n8nJobResponse && (
-          <div className="bg-emerald-50 border-2 border-emerald-500/80 rounded-2xl p-4 sm:p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4 shadow-sm animate-fade-in">
-            <div className="flex items-center space-x-3.5">
-              <div className="w-12 h-12 rounded-xl bg-emerald-600 text-white flex items-center justify-center shadow-md shadow-emerald-500/30 flex-shrink-0">
-                <CheckCircle2 className="w-7 h-7" />
-              </div>
-              <div>
-                <div className="flex items-center gap-2 flex-wrap">
-                  <span className="font-extrabold text-base sm:text-lg text-emerald-950">
-                    “Đã gửi sang n8n” – {n8nJobResponse.message || 'Đã nhận yêu cầu'}
-                  </span>
-                  <span className="px-2.5 py-0.5 rounded-full bg-emerald-200 text-emerald-900 font-bold text-xs">
-                    Status: {n8nJobResponse.status || 'received'}
-                  </span>
-                </div>
-                <p className="text-xs text-emerald-800 mt-0.5">
-                  Đã nhận thành công 2 file: <strong>{bookMedia?.name}</strong> + <strong>{kolMedia?.name}</strong>
-                </p>
-              </div>
+        {/* MIDDLE SECTION: Left (Upload + Preview & Storyboard) | Right (Progress Timeline Sidebar) */}
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 items-stretch">
+          
+          {/* Main Work Area (8 columns) */}
+          <div className="lg:col-span-8 grid grid-cols-1 md:grid-cols-12 gap-4">
+            {/* Sub-Left: 2 Upload Cards + Big Gradient CTA (5 cols) */}
+            <div className="md:col-span-5 h-full">
+              <UploadSection
+                bookMedia={bookMedia}
+                kolMedia={kolMedia}
+                onBookMediaChange={setBookMedia}
+                onKolMediaChange={setKolMedia}
+                onStartGenerate={handleStartGenerate}
+                isProcessing={isProcessing}
+              />
             </div>
 
-            <div className="flex items-center gap-3 self-start sm:self-auto">
-              <div className="bg-white px-3.5 py-2 rounded-xl border border-emerald-300 font-mono text-xs shadow-sm">
-                <span className="text-slate-500 font-semibold">JOB ID: </span>
-                <span className="text-emerald-700 font-extrabold">{n8nJobResponse.job_id || currentJobId}</span>
-              </div>
+            {/* Sub-Right: Preview & Storyboard (7 cols) */}
+            <div className="md:col-span-7 h-full">
+              <PreviewSection
+                storyboard={storyboard}
+                isCompleted={isCompleted}
+                isProcessing={isProcessing}
+                bookImage={bookMedia}
+                kolImage={kolMedia}
+              />
             </div>
           </div>
-        )}
 
-        {/* 5. Progress Tracker (Card: Tiến trình tạo video - 8 States & Console logs) */}
-        {(isProcessing || isCompleted || executionLogs.length > 0) && (
-          <ProgressTracker
-            steps={processSteps}
-            currentStepIndex={currentStepIndex}
-            isProcessing={isProcessing}
-            logs={executionLogs}
-            jobId={currentJobId}
-            n8nResponse={n8nJobResponse}
-          />
-        )}
+          {/* Right Sidebar: Progress Tracker + Sau khi hoan thanh (4 columns) */}
+          <div className="lg:col-span-4 h-full">
+            <ProgressTracker
+              steps={processSteps}
+              currentStepIndex={currentStepIndex}
+              isProcessing={isProcessing}
+              logs={executionLogs}
+              jobId={currentJobId}
+              n8nResponse={n8nJobResponse}
+            />
+          </div>
 
-        {/* 6. Preview Section (Khung Video 9:16 + Storyboard 5 Phân Cảnh) */}
-        <PreviewSection
-          storyboard={storyboard}
-          isCompleted={isCompleted}
-          isProcessing={isProcessing}
-          bookImage={bookMedia}
-          kolImage={kolMedia}
-        />
+        </div>
 
-        {/* 7. Google Drive Folder Explorer (Folder + 6 Files) */}
-        <DriveFolderViewer
-          files={driveFiles}
-          jobId={currentJobId}
-          folderPath={`TRÍ AI VIDEO FACTORY / 2026 / 10 / ${currentJobId}`}
-        />
+        {/* BOTTOM SECTION: Left (Google Drive) | Right (Caption) */}
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 items-stretch">
+          
+          {/* Left: Google Drive Folder Viewer (7 columns) */}
+          <div className="lg:col-span-7 h-full">
+            <DriveFolderViewer
+              files={driveFiles}
+              jobId={currentJobId}
+              folderPath={`TRÍ AI VIDEO FACTORY / 2026 / 10 / ${currentJobId}`}
+            />
+          </div>
 
-        {/* 8. Caption Card (Auto-generated Caption + Hashtags + One-click Copy) */}
-        <CaptionCard
-          captionText={captionText}
-          hashtags={hashtags}
-        />
+          {/* Right: Caption Card (5 columns) */}
+          <div className="lg:col-span-5 h-full">
+            <CaptionCard />
+          </div>
+
+        </div>
 
       </main>
 
-      {/* 9. Modals */}
+      {/* Modals */}
       <HistoryModal
         isOpen={isHistoryOpen}
         onClose={() => setIsHistoryOpen(false)}
@@ -414,7 +366,7 @@ export const App: React.FC = () => {
         onSaveSettings={setSettings}
       />
 
-      {/* 10. Footer */}
+      {/* Footer */}
       <Footer />
     </div>
   );
