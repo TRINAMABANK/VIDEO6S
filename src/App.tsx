@@ -16,7 +16,7 @@ import { INITIAL_PROCESS_STEPS, DEFAULT_STORYBOARD, DEFAULT_DRIVE_FILES, SAMPLE_
 import { VideoFactoryService, mediaToFile } from './services/videoFactoryService';
 import { N8N_WEBHOOK_URL } from './config/env';
 import { triggerCelebration } from './utils/helpers';
-import { AlertTriangle, Settings as SettingsIcon } from 'lucide-react';
+import { AlertTriangle, Settings as SettingsIcon, Sparkles } from 'lucide-react';
 
 export const App: React.FC = () => {
   // Navigation & Modals
@@ -224,7 +224,12 @@ export const App: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-[#f3f6fc] flex flex-col selection:bg-brand-500 selection:text-white font-sans">
+    <div className="min-h-screen bg-[#f8fafc] flex flex-col selection:bg-indigo-500 selection:text-white font-sans relative">
+      {/* Subtle Ambient Background Mesh Lighting */}
+      <div className="fixed inset-0 pointer-events-none z-0 overflow-hidden">
+        <div className="absolute -top-40 left-1/2 -translate-x-1/2 w-[1000px] h-[400px] bg-gradient-to-b from-indigo-100/60 via-purple-50/40 to-transparent blur-3xl opacity-70" />
+      </div>
+
       {/* 1. Header (Dark Navy Theme) */}
       <Header
         activeTab={activeNavTab}
@@ -233,20 +238,25 @@ export const App: React.FC = () => {
       />
 
       {/* Main Dashboard Layout */}
-      <main className="flex-1 max-w-[1520px] w-full mx-auto px-4 sm:px-6 py-5 sm:py-6 space-y-5">
+      <main className="relative z-10 flex-1 max-w-[1540px] w-full mx-auto px-4 sm:px-6 py-5 sm:py-6 space-y-4 sm:space-y-5">
         
         {/* Top Hero Title & Subtitle */}
-        <div className="text-center max-w-4xl mx-auto space-y-1.5 pt-1">
-          <h1 className="text-2xl sm:text-3xl md:text-[32px] font-black text-slate-900 tracking-tight">
-            Tạo Video Quảng Cáo Sách 6 Giây
+        <div className="text-center max-w-4xl mx-auto space-y-2 pt-1">
+          <div className="inline-flex items-center space-x-2 px-3 py-1 rounded-full bg-indigo-50 border border-indigo-200/80 text-indigo-700 text-xs font-bold shadow-xs">
+            <Sparkles className="w-3.5 h-3.5 text-indigo-600" />
+            <span>AI AUTOMATION ENGINE • 6-SECOND VIRAL BOOK VIDEO FACTORY</span>
+          </div>
+
+          <h1 className="text-2xl sm:text-3xl md:text-[34px] font-black text-slate-900 tracking-tight leading-tight">
+            Tạo Video Quảng Cáo Sách <span className="bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-600 bg-clip-text text-transparent">6 Giây</span>
           </h1>
           <p className="text-xs sm:text-sm text-slate-600 max-w-3xl mx-auto leading-relaxed">
-            Chỉ cần upload ảnh cuốn sách và ảnh KOL, hệ thống sẽ tự động tạo video, lưu vào Google Drive với đầy đủ storyboard, hình ảnh và caption.
+            Chỉ cần upload <strong>ảnh cuốn sách</strong> và <strong>ảnh KOL</strong>, hệ thống sẽ tự động phân tích kịch bản, tạo video dọc 9:16 và lưu đầy đủ tài nguyên vào Google Drive.
           </p>
         </div>
 
         {/* 6 Steps Process Workflow Bar */}
-        <div className="bg-white rounded-2xl border border-slate-200/80 shadow-sm p-4 sm:px-8">
+        <div className="bg-white rounded-2xl border border-slate-200/90 shadow-sm p-4 sm:px-6 hover:border-indigo-200 transition-colors">
           <ProcessWorkflow
             currentStepIndex={currentStepIndex}
             isProcessing={isProcessing}
@@ -255,7 +265,7 @@ export const App: React.FC = () => {
 
         {/* Warning Banner (If n8n not configured) */}
         {!isWebhookConfigured && (
-          <div className="bg-amber-50 border border-amber-300/80 rounded-xl p-3 px-4 flex items-center justify-between text-xs text-amber-900 shadow-sm">
+          <div className="bg-amber-50/90 border border-amber-300/80 rounded-2xl p-3 sm:px-4 flex items-center justify-between text-xs text-amber-900 shadow-xs">
             <div className="flex items-center space-x-2">
               <AlertTriangle className="w-4 h-4 text-amber-600 flex-shrink-0" />
               <span>
@@ -264,7 +274,7 @@ export const App: React.FC = () => {
             </div>
             <button
               onClick={() => setIsSettingsOpen(true)}
-              className="text-amber-800 hover:text-amber-950 font-bold underline flex items-center gap-1"
+              className="text-amber-800 hover:text-amber-950 font-bold underline flex items-center gap-1 flex-shrink-0 ml-2"
             >
               <SettingsIcon className="w-3.5 h-3.5" />
               <span>Cài đặt URL</span>
@@ -274,14 +284,14 @@ export const App: React.FC = () => {
 
         {/* Error Alert Display */}
         {errorMessage && (
-          <div className="bg-rose-50 border border-rose-300 rounded-xl p-3 px-4 text-xs text-rose-900 flex items-center justify-between">
+          <div className="bg-rose-50 border border-rose-300 rounded-2xl p-3 px-4 text-xs text-rose-900 flex items-center justify-between">
             <span><strong>Lỗi Webhook:</strong> {errorMessage}</span>
             <button onClick={() => setErrorMessage(null)} className="font-bold text-rose-700">Đóng</button>
           </div>
         )}
 
         {/* MIDDLE SECTION: Left (Upload + Preview & Storyboard) | Right (Progress Timeline Sidebar) */}
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 items-stretch">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 sm:gap-5 items-stretch">
           
           {/* Main Work Area (8 columns) */}
           <div className="lg:col-span-8 grid grid-cols-1 md:grid-cols-12 gap-4">
@@ -324,7 +334,7 @@ export const App: React.FC = () => {
         </div>
 
         {/* BOTTOM SECTION: Left (Google Drive) | Right (Caption) */}
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 items-stretch">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 sm:gap-5 items-stretch">
           
           {/* Left: Google Drive Folder Viewer (7 columns) */}
           <div className="lg:col-span-7 h-full">

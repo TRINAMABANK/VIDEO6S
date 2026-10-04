@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Play, Pause, RotateCcw, Volume2, VolumeX, Sparkles, Download, Share2, Film, CheckCircle2 } from 'lucide-react';
+import { Play, Pause, RotateCcw, Volume2, VolumeX, Maximize2, Sparkles, BookOpen, ShoppingBag } from 'lucide-react';
 import type { UploadedMedia } from '../../types';
 
 interface VideoPlayerProps {
@@ -7,13 +7,11 @@ interface VideoPlayerProps {
   isProcessing: boolean;
   bookImage: UploadedMedia | null;
   kolImage: UploadedMedia | null;
-  activeTime: number; // 0 to 6 in seconds
+  activeTime: number;
   onTimeChange: (time: number) => void;
 }
 
 export const VideoPlayer: React.FC<VideoPlayerProps> = ({
-  isCompleted,
-  isProcessing,
   bookImage,
   kolImage,
   activeTime,
@@ -29,7 +27,6 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
     currentTimeRef.current = activeTime;
   }, [activeTime]);
 
-  // Handle Playback loop (6 seconds)
   useEffect(() => {
     if (!isPlaying) {
       if (animationRef.current) cancelAnimationFrame(animationRef.current);
@@ -44,7 +41,7 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
 
       let nextTime = currentTimeRef.current + delta;
       if (nextTime >= 6) {
-        nextTime = 0; // loop
+        nextTime = 0;
       }
       currentTimeRef.current = nextTime;
       onTimeChange(nextTime);
@@ -69,264 +66,183 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
     setIsPlaying(true);
   };
 
-  // Determine current active scene segment
-  const getActiveSceneName = (t: number) => {
-    if (t < 1) return { tag: '0–1s', name: 'HOOK', color: 'bg-amber-500' };
-    if (t < 2) return { tag: '1–2s', name: 'GIỚI THIỆU SÁCH', color: 'bg-brand-500' };
-    if (t < 4) return { tag: '2–4s', name: 'KOL TƯƠNG TÁC', color: 'bg-purple-500' };
-    if (t < 5) return { tag: '4–5s', name: 'ĐIỂM NỔI BẬT', color: 'bg-emerald-500' };
-    return { tag: '5–6s', name: 'CTA MUA NGAY', color: 'bg-rose-500' };
-  };
-
-  const currentScene = getActiveSceneName(activeTime);
+  const kolSrc = kolImage?.previewUrl || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=600&q=80';
+  const bookSrc = bookImage?.previewUrl || 'https://images.unsplash.com/photo-1544947950-fa07a98d237f?auto=format&fit=crop&w=600&q=80';
 
   return (
-    <div className="flex flex-col items-center">
-      {/* 9:16 Vertical Video Container */}
-      <div className="relative w-full max-w-[280px] sm:max-w-[310px] aspect-[9/16] bg-slate-950 rounded-3xl overflow-hidden shadow-2xl border-4 border-slate-900 ring-1 ring-slate-800/80 flex flex-col justify-between group">
-        
-        {/* Top Video Overlay Bar */}
-        <div className="relative z-20 p-3.5 flex items-center justify-between text-white bg-gradient-to-b from-black/80 via-black/30 to-transparent">
-          <div className="flex items-center space-x-1.5">
-            <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold text-white uppercase tracking-wider ${currentScene.color}`}>
-              {currentScene.tag} • {currentScene.name}
-            </span>
-          </div>
-
-          <button
-            onClick={() => setIsMuted(!isMuted)}
-            className="p-1.5 rounded-full bg-black/40 hover:bg-black/60 text-white/90 backdrop-blur transition-colors"
-          >
-            {isMuted ? <VolumeX className="w-3.5 h-3.5" /> : <Volume2 className="w-3.5 h-3.5" />}
-          </button>
+    <div className="relative w-full max-w-[210px] sm:max-w-[230px] aspect-[9/16] bg-slate-950 rounded-[28px] p-2 overflow-hidden shadow-2xl border-[3px] border-slate-800 ring-1 ring-white/20 flex flex-col justify-between group select-none">
+      
+      {/* Dynamic Island Notch Pill */}
+      <div className="absolute top-3 inset-x-0 z-30 flex justify-center pointer-events-none">
+        <div className="w-20 h-4 bg-black rounded-full border border-white/10 flex items-center justify-between px-2 shadow-sm">
+          <span className="w-1.5 h-1.5 rounded-full bg-slate-800" />
+          <span className="w-2 h-2 rounded-full bg-indigo-500/80 animate-pulse" />
         </div>
+      </div>
 
-        {/* Video Canvas Simulation Body */}
-        <div className="absolute inset-0 flex items-center justify-center overflow-hidden">
-          {!isCompleted && !isProcessing ? (
-            /* Idle Placeholder */
-            <div className="p-6 text-center text-slate-400 space-y-3 z-10">
-              <div className="w-16 h-16 rounded-2xl bg-slate-900 border border-slate-800 flex items-center justify-center mx-auto text-brand-400 shadow-inner">
-                <Film className="w-8 h-8 opacity-80" />
-              </div>
-              <div className="space-y-1">
-                <p className="text-xs font-bold text-slate-200">Khung Video 9:16</p>
-                <p className="text-[11px] text-slate-500 leading-snug">
-                  Tải lên ảnh sách & KOL rồi bấm tạo video để xem trước bản dựng hoàn chỉnh
-                </p>
-              </div>
+      {/* Internal Screen Container */}
+      <div className="relative w-full h-full rounded-[22px] overflow-hidden bg-black flex flex-col justify-between">
+        
+        {/* Dynamic Scene Rendering based on activeTime (0 to 6s) */}
+        <div className="absolute inset-0 z-0 overflow-hidden">
+          {/* Background image shifts dynamically */}
+          <img
+            src={activeTime >= 1 && activeTime < 2 ? bookSrc : kolSrc}
+            alt="Video Scene"
+            className="w-full h-full object-cover transition-transform duration-700 ease-out group-hover:scale-105"
+          />
+          
+          {/* Subtle Dark Gradient Overlay */}
+          <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/20 to-black/40" />
+
+          {/* SCENE 1: 0 - 1s (Hook) */}
+          {activeTime < 1 && (
+            <div className="absolute top-10 left-2.5 right-2.5 space-y-1 animate-fadeIn">
+              <span className="inline-flex items-center space-x-1 bg-rose-600 text-white text-[9px] font-black uppercase px-2 py-0.5 rounded-full shadow-md">
+                <Sparkles className="w-2.5 h-2.5" />
+                <span>TOP 1 SÁCH BÁN CHẠY</span>
+              </span>
+              <h4 className="text-white text-xs sm:text-[13px] font-black leading-tight drop-shadow-lg">
+                Cuốn sách <span className="text-amber-300">thay đổi</span> <br />
+                <span className="text-rose-400">tư duy & cuộc đời</span>
+              </h4>
             </div>
-          ) : isProcessing ? (
-            /* Generating State Animation */
-            <div className="p-6 text-center text-white space-y-4 z-10 flex flex-col items-center">
-              <div className="relative">
-                <div className="w-16 h-16 rounded-full border-4 border-brand-500/20 border-t-brand-500 animate-spin" />
-                <Sparkles className="w-6 h-6 text-brand-400 absolute inset-0 m-auto animate-pulse" />
+          )}
+
+          {/* SCENE 2: 1 - 2s (Book intro) */}
+          {activeTime >= 1 && activeTime < 2 && (
+            <div className="absolute inset-x-2.5 bottom-16 bg-black/75 backdrop-blur-md p-2.5 rounded-xl border border-white/20 text-white space-y-1 animate-fadeIn">
+              <div className="flex items-center space-x-1 text-amber-400 text-[10px] font-extrabold">
+                <BookOpen className="w-3 h-3" />
+                <span>SIÊU PHẨM KINH ĐIỂN</span>
               </div>
-              <div className="space-y-1">
-                <p className="text-xs font-bold text-slate-200 tracking-wide">ĐANG RENDER VIDEO 6S</p>
-                <p className="text-[10px] text-slate-400">Khớp từng khung hình AI...</p>
-              </div>
+              <h5 className="font-black text-xs text-white">ĐẮC NHÂN TÂM</h5>
+              <p className="text-[9px] text-slate-300 leading-tight">
+                Nghệ thuật thu phục lòng người & kết nối đỉnh cao.
+              </p>
             </div>
-          ) : (
-            /* Completed Interactive Dynamic 6-Second Simulation */
-            <div className="relative w-full h-full bg-gradient-to-b from-slate-900 via-indigo-950 to-slate-900 select-none">
-              
-              {/* Dynamic Scene Overlays depending on activeTime */}
-              {/* Scene 1: 0 - 1s HOOK */}
-              {activeTime < 1 && (
-                <div className="absolute inset-0 flex flex-col items-center justify-center p-4 text-center animate-fade-in">
-                  <div className="relative mb-4 scale-110 transition-transform">
-                    <img
-                      src={bookImage?.previewUrl || 'https://images.unsplash.com/photo-1544947950-fa07a98d237f'}
-                      alt="Book Cover"
-                      className="w-36 h-48 object-cover rounded-lg shadow-2xl ring-4 ring-amber-400/80 animate-pulse"
-                    />
-                    <div className="absolute -top-3 -right-3 bg-amber-500 text-black text-[10px] font-black px-2 py-0.5 rounded-full shadow-lg">
-                      HOT TREND
-                    </div>
-                  </div>
-                  <div className="bg-black/70 backdrop-blur-md px-3 py-1.5 rounded-xl border border-amber-400/50">
-                    <p className="text-xs font-black text-amber-300 uppercase tracking-wider">
-                      ⚡ CUỐN SÁCH PHẢI ĐỌC 2026!
-                    </p>
-                  </div>
-                </div>
-              )}
+          )}
 
-              {/* Scene 2: 1 - 2s INTRO */}
-              {activeTime >= 1 && activeTime < 2 && (
-                <div className="absolute inset-0 flex flex-col items-center justify-center p-4 text-center">
-                  <div className="w-32 h-44 rounded-lg overflow-hidden shadow-2xl border-2 border-brand-400/70 mb-3 animate-bounce">
-                    <img
-                      src={bookImage?.previewUrl || 'https://images.unsplash.com/photo-1544947950-fa07a98d237f'}
-                      alt="Book"
-                      className="w-full h-full object-cover"
-                    />
-                  </div>
-                  <div className="bg-brand-600/90 text-white px-3 py-1 rounded-lg text-xs font-extrabold shadow-lg">
-                    TỰA SÁCH BÁN CHẠY NHẤT
-                  </div>
-                  <p className="text-[11px] text-slate-200 mt-1 font-medium bg-black/60 px-2 py-0.5 rounded">
-                    Khám phá bí mật tư duy bứt phá
-                  </p>
-                </div>
-              )}
+          {/* SCENE 3: 2 - 4s (KOL sharing) */}
+          {activeTime >= 2 && activeTime < 4 && (
+            <div className="absolute inset-x-2.5 bottom-16 bg-black/75 backdrop-blur-md p-2.5 rounded-xl border border-white/20 text-white space-y-1 animate-fadeIn">
+              <div className="flex items-center justify-between">
+                <span className="text-indigo-300 text-[9px] font-black uppercase tracking-wider">KOL REVIEW</span>
+                <span className="flex space-x-0.5">
+                  <span className="w-1 h-3 bg-emerald-400 rounded-full animate-bounce" />
+                  <span className="w-1 h-2 bg-emerald-400 rounded-full animate-pulse" />
+                  <span className="w-1 h-3 bg-emerald-400 rounded-full animate-bounce" />
+                </span>
+              </div>
+              <p className="text-[10px] text-slate-100 font-medium leading-tight">
+                "Đọc xong mình áp dụng ngay vào giao tiếp và thấy công việc thăng tiến rõ rệt!"
+              </p>
+            </div>
+          )}
 
-              {/* Scene 3: 2 - 4s KOL INTERACTION */}
-              {activeTime >= 2 && activeTime < 4 && (
-                <div className="absolute inset-0 flex flex-col items-center justify-center p-4">
-                  <div className="relative w-44 h-56 rounded-2xl overflow-hidden border-2 border-purple-400 shadow-2xl">
-                    <img
-                      src={kolImage?.previewUrl || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb'}
-                      alt="KOL"
-                      className="w-full h-full object-cover"
-                    />
-                    <div className="absolute bottom-2 right-2 w-16 h-22 rounded border border-white/60 shadow-lg overflow-hidden">
-                      <img
-                        src={bookImage?.previewUrl || 'https://images.unsplash.com/photo-1544947950-fa07a98d237f'}
-                        alt="Mini book"
-                        className="w-full h-full object-cover"
-                      />
-                    </div>
-                  </div>
-                  <div className="mt-3 bg-purple-600 text-white px-3 py-1 rounded-full text-[11px] font-bold shadow-md">
-                    ⭐ KOL Review: "10/10 Rất đáng tiền!"
-                  </div>
-                </div>
-              )}
+          {/* SCENE 4: 4 - 5s (Key Highlights) */}
+          {activeTime >= 4 && activeTime < 5 && (
+            <div className="absolute inset-x-2.5 bottom-16 bg-indigo-950/80 backdrop-blur-md p-2.5 rounded-xl border border-indigo-400/40 text-white space-y-1 animate-fadeIn">
+              <span className="text-amber-300 text-[9px] font-black uppercase">⭐ ĐIỂM NỔI BẬT</span>
+              <ul className="text-[9px] text-slate-200 font-medium space-y-0.5">
+                <li>✓ 6 cách tạo thiện cảm tức thì</li>
+                <li>✓ Bí quyết thuyết phục người khác</li>
+              </ul>
+            </div>
+          )}
 
-              {/* Scene 4: 4 - 5s HIGHLIGHTS */}
-              {activeTime >= 4 && activeTime < 5 && (
-                <div className="absolute inset-0 flex flex-col items-center justify-center p-5 text-left space-y-2">
-                  <div className="w-full bg-black/75 backdrop-blur-md p-3.5 rounded-2xl border border-emerald-400/60 space-y-2 text-white">
-                    <div className="text-xs font-black text-emerald-400 flex items-center gap-1.5">
-                      <Sparkles className="w-3.5 h-3.5" />
-                      <span>3 LÝ DO NÊN MUA NGAY</span>
-                    </div>
-                    <div className="text-[11px] space-y-1 text-slate-200">
-                      <div className="flex items-center gap-1.5">
-                        <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400 flex-shrink-0" />
-                        <span>Áp dụng thực tế tức thì</span>
-                      </div>
-                      <div className="flex items-center gap-1.5">
-                        <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400 flex-shrink-0" />
-                        <span>Tặng kèm audio tóm tắt</span>
-                      </div>
-                      <div className="flex items-center gap-1.5">
-                        <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400 flex-shrink-0" />
-                        <span>Freeship toàn quốc hôm nay</span>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              {/* Scene 5: 5 - 6s CTA */}
-              {activeTime >= 5 && (
-                <div className="absolute inset-0 flex flex-col items-center justify-center p-4 text-center space-y-3">
-                  <div className="w-24 h-32 rounded-lg overflow-hidden shadow-xl border border-rose-400/80 mb-1">
-                    <img
-                      src={bookImage?.previewUrl || 'https://images.unsplash.com/photo-1544947950-fa07a98d237f'}
-                      alt="Book"
-                      className="w-full h-full object-cover"
-                    />
-                  </div>
-                  <div className="w-full bg-rose-600 text-white font-extrabold py-2.5 px-4 rounded-2xl text-xs shadow-xl animate-bounce flex items-center justify-center gap-2 cursor-pointer">
-                    <span>🛒 BẤM MUA NGAY (GIẢM 30%)</span>
-                  </div>
-                  <span className="text-[10px] text-slate-300 font-medium bg-black/60 px-2 py-0.5 rounded-full">
-                    Ưu đãi chỉ còn trong hôm nay
-                  </span>
-                </div>
-              )}
-
-              {/* Play / Pause Big Center Click Overlay */}
-              <button
-                onClick={togglePlay}
-                className="absolute inset-0 m-auto w-12 h-12 rounded-full bg-black/50 text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity backdrop-blur-sm hover:scale-110"
-              >
-                {isPlaying ? <Pause className="w-6 h-6" /> : <Play className="w-6 h-6 ml-0.5" />}
-              </button>
+          {/* SCENE 5: 5 - 6s (CTA) */}
+          {activeTime >= 5 && (
+            <div className="absolute inset-x-2.5 bottom-16 bg-gradient-to-r from-rose-600 to-indigo-600 p-2.5 rounded-xl text-white text-center space-y-1 shadow-lg animate-pulse">
+              <div className="flex items-center justify-center space-x-1 text-[11px] font-black uppercase">
+                <ShoppingBag className="w-3.5 h-3.5" />
+                <span>MUA NGAY TRÊN TIKTOK SHOP</span>
+              </div>
+              <p className="text-[9px] text-pink-100 font-medium">Ưu đãi độc quyền hôm nay!</p>
             </div>
           )}
         </div>
 
-        {/* Bottom Video Controls Bar */}
-        <div className="relative z-20 p-3 bg-gradient-to-t from-black/90 via-black/50 to-transparent space-y-2">
+        {/* Top Mini Bar */}
+        <div className="relative z-20 flex items-center justify-between p-2 pt-6 text-white text-[10px]">
+          <span className="px-1.5 py-0.5 rounded bg-black/60 backdrop-blur-xs font-mono font-bold text-amber-300">
+            00:0{Math.floor(activeTime)} / 00:06
+          </span>
+          <span className="px-1.5 py-0.5 rounded bg-black/60 backdrop-blur-xs font-bold text-slate-300 text-[9px]">
+            9:16 HD
+          </span>
+        </div>
+
+        {/* Center Play/Pause Floating Overlay */}
+        <div 
+          onClick={togglePlay}
+          className="relative z-20 flex-1 flex items-center justify-center cursor-pointer"
+        >
+          {!isPlaying && (
+            <div className="w-12 h-12 rounded-full bg-white/90 text-slate-950 flex items-center justify-center shadow-xl hover:scale-110 transition-transform">
+              <Play className="w-5 h-5 fill-slate-950 ml-0.5" />
+            </div>
+          )}
+        </div>
+
+        {/* Bottom Interactive Controls */}
+        <div className="relative z-20 p-2.5 bg-gradient-to-t from-black/95 via-black/80 to-transparent space-y-1.5">
           {/* Scrubber Bar */}
-          <div className="flex items-center space-x-2">
-            <input
-              type="range"
-              min="0"
-              max="6"
-              step="0.05"
-              value={activeTime}
-              onChange={(e) => {
-                const val = parseFloat(e.target.value);
-                currentTimeRef.current = val;
-                onTimeChange(val);
-              }}
-              disabled={!isCompleted}
-              className="w-full h-1.5 bg-slate-700 rounded-lg appearance-none cursor-pointer accent-brand-500 disabled:opacity-50"
+          <div 
+            onClick={(e) => {
+              const rect = e.currentTarget.getBoundingClientRect();
+              const clickX = e.clientX - rect.left;
+              const ratio = Math.max(0, Math.min(1, clickX / rect.width));
+              onTimeChange(ratio * 6);
+            }}
+            className="w-full h-1.5 bg-white/30 rounded-full cursor-pointer overflow-hidden relative"
+          >
+            <div 
+              className="h-full bg-gradient-to-r from-cyan-400 to-indigo-500 rounded-full"
+              style={{ width: `${(activeTime / 6) * 100}%` }}
             />
           </div>
 
-          <div className="flex items-center justify-between text-white text-xs">
+          <div className="flex items-center justify-between text-white text-[11px] pt-0.5">
             <div className="flex items-center space-x-2">
               <button
                 type="button"
                 onClick={togglePlay}
-                disabled={!isCompleted}
-                className="p-1 rounded hover:bg-white/20 transition-colors disabled:opacity-40"
+                className="hover:text-cyan-400 transition-colors p-1"
+                title={isPlaying ? 'Tạm dừng' : 'Phát'}
               >
-                {isPlaying ? <Pause className="w-4 h-4" /> : <Play className="w-4 h-4" />}
+                {isPlaying ? <Pause className="w-3.5 h-3.5" /> : <Play className="w-3.5 h-3.5 fill-white" />}
               </button>
-
               <button
                 type="button"
                 onClick={handleRestart}
-                disabled={!isCompleted}
-                className="p-1 rounded hover:bg-white/20 transition-colors disabled:opacity-40"
+                className="hover:text-cyan-400 transition-colors p-1"
                 title="Xem lại từ đầu"
               >
                 <RotateCcw className="w-3.5 h-3.5" />
               </button>
-
-              <span className="font-mono text-[11px] text-slate-300">
-                00:0{Math.floor(activeTime)} / 00:06
-              </span>
             </div>
 
-            <span className="text-[10px] font-bold text-brand-400 uppercase tracking-wider">
-              9:16 1080p
-            </span>
+            <div className="flex items-center space-x-1.5">
+              <button
+                type="button"
+                onClick={() => setIsMuted(!isMuted)}
+                className="hover:text-cyan-400 transition-colors p-1"
+              >
+                {isMuted ? <VolumeX className="w-3.5 h-3.5" /> : <Volume2 className="w-3.5 h-3.5" />}
+              </button>
+              <button
+                type="button"
+                onClick={() => alert('Phóng to chế độ toàn màn hình 1080x1920 HD')}
+                className="hover:text-cyan-400 transition-colors p-1"
+              >
+                <Maximize2 className="w-3.5 h-3.5" />
+              </button>
+            </div>
           </div>
         </div>
+
       </div>
-
-      {/* Video Quick Action Buttons */}
-      {isCompleted && (
-        <div className="flex items-center gap-2 mt-3.5">
-          <button
-            type="button"
-            onClick={() => alert('Đang chuẩn bị tải xuống 05_VIDEO_6S.mp4')}
-            className="flex items-center space-x-1.5 px-3.5 py-1.5 rounded-xl text-xs font-bold bg-brand-600 hover:bg-brand-700 text-white shadow-sm transition-all"
-          >
-            <Download className="w-3.5 h-3.5" />
-            <span>Tải video .MP4</span>
-          </button>
-
-          <button
-            type="button"
-            onClick={() => alert('Đã sao chép liên kết chia sẻ video')}
-            className="flex items-center space-x-1.5 px-3.5 py-1.5 rounded-xl text-xs font-semibold bg-white hover:bg-slate-100 text-slate-700 border border-slate-200 transition-colors"
-          >
-            <Share2 className="w-3.5 h-3.5 text-slate-500" />
-            <span>Chia sẻ</span>
-          </button>
-        </div>
-      )}
     </div>
   );
 };
