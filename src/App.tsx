@@ -11,10 +11,11 @@ import { HistoryModal } from './components/history/HistoryModal';
 import { SettingsModal } from './components/settings/SettingsModal';
 import { DriveModal } from './components/drive/DriveModal';
 
-import type { UploadedMedia, ProcessStep, StoryboardScene, DriveItem, GenerationJob, AppSettings } from './types';
+import type { UploadedMedia, ProcessStep, StoryboardScene, DriveItem, GenerationJob, AppSettings, N8nWebhookResponse } from './types';
 import { INITIAL_PROCESS_STEPS, DEFAULT_STORYBOARD, DEFAULT_DRIVE_FILES, SAMPLE_CAPTION, DEFAULT_SETTINGS } from './constants/mockData';
 import { VideoFactoryService } from './services/videoFactoryService';
 import { triggerCelebration } from './utils/helpers';
+import { CheckCircle2 } from 'lucide-react';
 
 export const App: React.FC = () => {
   // Navigation & Modals
@@ -35,6 +36,7 @@ export const App: React.FC = () => {
   const [processSteps, setProcessSteps] = useState<ProcessStep[]>(INITIAL_PROCESS_STEPS);
   const [executionLogs, setExecutionLogs] = useState<string[]>([]);
   const [currentJobId, setCurrentJobId] = useState('JOB-0001');
+  const [n8nJobResponse, setN8nJobResponse] = useState<N8nWebhookResponse | null>(null);
 
   // Result States
   const [storyboard, setStoryboard] = useState<StoryboardScene[]>(DEFAULT_STORYBOARD);
@@ -62,32 +64,41 @@ export const App: React.FC = () => {
     setIsProcessing(false);
     setIsCompleted(false);
     setCurrentStepIndex(0);
+    setN8nJobResponse(null);
     setProcessSteps(INITIAL_PROCESS_STEPS.map(s => ({ ...s, status: 'idle' })));
     setExecutionLogs([]);
   };
 
-  // Main Action: Start Demo Generation
+  // Main Action: Upload BOOK + KOL -> N8N WEBHOOK -> Nhận 2 file -> Trả JOB_ID -> Frontend: "Đã nhận yêu cầu"
   const handleStartGenerate = async () => {
     if (!bookMedia || !kolMedia || isProcessing) return;
 
     setIsProcessing(true);
     setIsCompleted(false);
+    setN8nJobResponse(null);
     setCurrentStepIndex(0);
-    setExecutionLogs([`[${new Date().toLocaleTimeString()}] 🚀 Khởi chạy TRÍ AI Video Pipeline...`]);
+    setExecutionLogs([
+      `[${new Date().toLocaleTimeString()}] 🚀 [ANTIGRAVITY] Bắt đầu phiên làm việc: Gửi Sách & KOL tới N8N WEBHOOK...`
+    ]);
 
-    // Reset step statuses to idle
     const cleanSteps = INITIAL_PROCESS_STEPS.map(s => ({ ...s, status: 'idle' as const }));
     setProcessSteps(cleanSteps);
 
     try {
-      await VideoFactoryService.runDemoProgressSimulation(
+      await VideoFactoryService.executePipeline(
         bookMedia,
         kolMedia,
+        settings.n8nWebhookUrl,
+        settings.useN8nWebhook,
         {
           onStepUpdate: (updatedSteps, activeIdx, log) => {
             setProcessSteps(updatedSteps);
             setCurrentStepIndex(activeIdx);
             setExecutionLogs(prev => [log, ...prev]);
+          },
+          onJobReceived: (jobRes) => {
+            setN8nJobResponse(jobRes);
+            setCurrentJobId(jobRes.job_id);
           },
           onComplete: (result) => {
             setIsProcessing(false);
@@ -98,10 +109,8 @@ export const App: React.FC = () => {
             setCaptionText(result.caption);
             setHashtags(result.hashtags);
 
-            // Trigger celebration
             triggerCelebration();
 
-            // Save to history
             const newJob: GenerationJob = {
               jobId: result.jobId,
               createdAt: result.completedAt,
@@ -120,11 +129,11 @@ export const App: React.FC = () => {
           },
           onError: (errMsg) => {
             setIsProcessing(false);
-            alert(`Lỗi: ${errMsg}`);
+            alert(`Lỗi Webhook: ${errMsg}`);
           }
         }
       );
-    } catch (err) {
+    } catch (err: any) {
       console.error(err);
       setIsProcessing(false);
     }
@@ -171,7 +180,38 @@ export const App: React.FC = () => {
           onReset={handleReset}
         />
 
-        {/* 4. Progress Tracker (Card: Tiến trình tạo video - 8 States & Console logs) */}
+        {/* 4. n8n Status Live Bar (Hiển thị khi n8n đã nhận 2 file và trả JOB_ID) */}
+        {n8nJobResponse && (
+          <div className="bg-emerald-50 border-2 border-emerald-500/80 rounded-2xl p-4 sm:p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4 shadow-sm animate-fade-in">
+            <div className="flex items-center space-x-3.5">
+              <div className="w-12 h-12 rounded-xl bg-emerald-600 text-white flex items-center justify-center shadow-md shadow-emerald-500/30 flex-shrink-0">
+                <CheckCircle2 className="w-7 h-7" />
+              </div>
+              <div>
+                <div className="flex items-center gap-2 flex-wrap">
+                  <span className="font-extrabold text-base sm:text-lg text-emerald-950">
+                    “Đã nhận yêu cầu”
+                  </span>
+                  <span className="px-2.5 py-0.5 rounded-full bg-emerald-200 text-emerald-900 font-bold text-xs">
+                    n8n Webhook Connected
+                  </span>
+                </div>
+                <p className="text-xs text-emerald-800 mt-0.5">
+                  Đã nhận thành công 2 file: <strong>{bookMedia?.name}</strong> + <strong>{kolMedia?.name}</strong>
+                </p>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-3 self-start sm:self-auto">
+              <div className="bg-white px-3.5 py-2 rounded-xl border border-emerald-300 font-mono text-xs">
+                <span className="text-slate-500 font-semibold">Mã Job: </span>
+                <span className="text-emerald-700 font-extrabold">{n8nJobResponse.job_id}</span>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* 5. Progress Tracker (Card: Tiến trình tạo video - 8 States & Console logs) */}
         {(isProcessing || isCompleted || executionLogs.length > 0) && (
           <ProgressTracker
             steps={processSteps}
@@ -179,10 +219,11 @@ export const App: React.FC = () => {
             isProcessing={isProcessing}
             logs={executionLogs}
             jobId={currentJobId}
+            n8nResponse={n8nJobResponse}
           />
         )}
 
-        {/* 5. Preview Section (Khung Video 9:16 + Storyboard 5 Phân Cảnh) */}
+        {/* 6. Preview Section (Khung Video 9:16 + Storyboard 5 Phân Cảnh) */}
         <PreviewSection
           storyboard={storyboard}
           isCompleted={isCompleted}
@@ -191,14 +232,14 @@ export const App: React.FC = () => {
           kolImage={kolMedia}
         />
 
-        {/* 6. Google Drive Folder Explorer (Folder + 6 Files) */}
+        {/* 7. Google Drive Folder Explorer (Folder + 6 Files) */}
         <DriveFolderViewer
           files={driveFiles}
           jobId={currentJobId}
           folderPath={`TRÍ AI VIDEO FACTORY / 2026 / 10 / ${currentJobId}`}
         />
 
-        {/* 7. Caption Card (Auto-generated Caption + Hashtags + One-click Copy) */}
+        {/* 8. Caption Card (Auto-generated Caption + Hashtags + One-click Copy) */}
         <CaptionCard
           captionText={captionText}
           hashtags={hashtags}
@@ -206,7 +247,7 @@ export const App: React.FC = () => {
 
       </main>
 
-      {/* 8. Modals */}
+      {/* 9. Modals */}
       <HistoryModal
         isOpen={isHistoryOpen}
         onClose={() => setIsHistoryOpen(false)}
@@ -228,7 +269,7 @@ export const App: React.FC = () => {
         onSaveSettings={setSettings}
       />
 
-      {/* 9. Footer */}
+      {/* 10. Footer */}
       <Footer />
     </div>
   );

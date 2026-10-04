@@ -14,7 +14,7 @@ export interface ProcessStep {
   label: string;
   description?: string;
   status: ProcessStepStatus;
-  duration?: number; // duration in ms for demo
+  duration?: number;
   timestamp?: string;
 }
 
@@ -46,7 +46,7 @@ export interface DriveItem {
 export interface GenerationJob {
   jobId: string;
   createdAt: Date;
-  status: 'idle' | 'processing' | 'completed' | 'failed';
+  status: 'idle' | 'received' | 'processing' | 'completed' | 'failed';
   currentStepIndex: number;
   bookImage: UploadedMedia | null;
   kolImage: UploadedMedia | null;
@@ -67,4 +67,17 @@ export interface AppSettings {
   aiModelVideo: string;
   aspectRatio: '9:16' | '16:9' | '1:1';
   autoDownload: boolean;
+  useN8nWebhook: boolean;
+}
+
+export interface N8nWebhookResponse {
+  success: boolean;
+  job_id: string;
+  status: string; // e.g. "RECEIVED" | "Đã nhận yêu cầu"
+  message: string;
+  received_at?: string;
+  files_received?: {
+    book: string;
+    kol: string;
+  };
 }

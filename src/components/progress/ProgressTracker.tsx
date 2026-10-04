@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
-import { Activity, CheckCircle2, Loader2, Terminal, ChevronDown, ChevronUp, Sparkles } from 'lucide-react';
-import type { ProcessStep } from '../../types';
+import { Activity, CheckCircle2, Loader2, Terminal, ChevronDown, ChevronUp, Sparkles, Cloud, Check } from 'lucide-react';
+import type { ProcessStep, N8nWebhookResponse } from '../../types';
 
 interface ProgressTrackerProps {
   steps: ProcessStep[];
@@ -8,13 +8,15 @@ interface ProgressTrackerProps {
   isProcessing: boolean;
   logs: string[];
   jobId?: string;
+  n8nResponse?: N8nWebhookResponse | null;
 }
 
 export const ProgressTracker: React.FC<ProgressTrackerProps> = ({
   steps,
   isProcessing,
   logs,
-  jobId = 'JOB-0001'
+  jobId = 'JOB-0001',
+  n8nResponse
 }) => {
   const [showLogs, setShowLogs] = useState(true);
 
@@ -35,12 +37,12 @@ export const ProgressTracker: React.FC<ProgressTrackerProps> = ({
               <h3 className="font-bold text-base sm:text-lg text-slate-900">
                 Tiến trình tạo video
               </h3>
-              <span className="font-mono text-xs px-2 py-0.5 rounded-md bg-slate-100 text-slate-600 border border-slate-200">
+              <span className="font-mono text-xs px-2 py-0.5 rounded-md bg-slate-100 text-slate-700 border border-slate-200 font-bold">
                 {jobId}
               </span>
             </div>
             <p className="text-xs text-slate-500">
-              Hệ thống xử lý đa tiến trình: AI Vision, Diffusion & Video Motion Synth
+              Pipeline tự động hóa kết nối n8n Webhook, AI Vision & Video Synth
             </p>
           </div>
         </div>
@@ -63,6 +65,36 @@ export const ProgressTracker: React.FC<ProgressTrackerProps> = ({
           </button>
         </div>
       </div>
+
+      {/* High-visibility "ĐÃ NHẬN YÊU CẦU" N8N Banner */}
+      {n8nResponse && (
+        <div className="bg-gradient-to-r from-emerald-500 via-teal-600 to-emerald-600 text-white p-3.5 px-5 flex flex-col sm:flex-row sm:items-center justify-between gap-2 shadow-inner">
+          <div className="flex items-center space-x-2.5">
+            <div className="w-7 h-7 rounded-lg bg-white/20 flex items-center justify-center backdrop-blur-sm">
+              <Cloud className="w-4 h-4 text-white" />
+            </div>
+            <div>
+              <div className="flex items-center gap-2">
+                <span className="text-xs font-black uppercase tracking-wider bg-white/20 px-2 py-0.5 rounded">
+                  n8n Webhook
+                </span>
+                <span className="font-black text-sm tracking-wide">
+                  ĐÃ NHẬN YÊU CẦU
+                </span>
+              </div>
+              <p className="text-[11px] text-emerald-100 font-medium mt-0.5">
+                Đã nhận thành công 2 file (Sách: {n8nResponse.files_received?.book || 'BOOK'} & KOL: {n8nResponse.files_received?.kol || 'KOL'})
+              </p>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-2 font-mono text-xs bg-black/20 px-3 py-1.5 rounded-xl border border-white/20 self-start sm:self-auto">
+            <span className="text-emerald-200 font-bold">MÃ JOB:</span>
+            <span className="font-extrabold text-white">{n8nResponse.job_id}</span>
+            <Check className="w-3.5 h-3.5 text-emerald-300 ml-1" />
+          </div>
+        </div>
+      )}
 
       {/* Progress Bar */}
       <div className="w-full bg-slate-100 h-2 relative overflow-hidden">
@@ -158,7 +190,7 @@ export const ProgressTracker: React.FC<ProgressTrackerProps> = ({
           <div className="max-h-36 overflow-y-auto space-y-1 pr-2">
             {logs.length === 0 ? (
               <p className="text-slate-500 italic">
-                Chờ khởi tạo... Bấm "🚀 TẠO VIDEO 6 GIÂY NGAY" để xem tiến trình thực thi trực tiếp.
+                Chờ khởi tạo... Bấm "🚀 TẠO VIDEO 6 GIÂY NGAY" để gửi 2 file lên n8n Webhook và nhận mã JOB_ID.
               </p>
             ) : (
               logs.map((log, lIdx) => (

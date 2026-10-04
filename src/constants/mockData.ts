@@ -164,8 +164,9 @@ export const DEFAULT_SETTINGS: AppSettings = {
   n8nApiKey: '',
   googleDriveRootFolder: 'TRÍ AI VIDEO FACTORY',
   videoQuality: '1080p',
-  aiModelText: 'OpenAI GPT-4o / Grok 3 (n8n ready)',
-  aiModelVideo: 'Kling AI / Runway Gen-3 (n8n ready)',
+  aiModelText: 'OpenAI GPT-4o / Grok 3',
+  aiModelVideo: 'Kling AI / Runway Gen-3',
   aspectRatio: '9:16',
-  autoDownload: false
+  autoDownload: false,
+  useN8nWebhook: true
 };
