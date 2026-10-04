@@ -57,8 +57,7 @@ export const UploadCard: React.FC<UploadCardProps> = ({
         previewUrl: e.target?.result as string,
         name: file.name,
         size: file.size,
-        type: file.type,
-        uploadedAt: new Date()
+        type: file.type
       });
     };
     reader.readAsDataURL(file);
@@ -88,8 +87,7 @@ export const UploadCard: React.FC<UploadCardProps> = ({
       previewUrl: sample.url,
       name: sample.name,
       size: 1024 * 850, // mock ~850KB
-      type: 'image/jpeg',
-      uploadedAt: new Date()
+      type: 'image/jpeg'
     });
   };
 

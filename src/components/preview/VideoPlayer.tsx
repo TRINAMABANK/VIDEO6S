@@ -8,7 +8,7 @@ interface VideoPlayerProps {
   bookImage: UploadedMedia | null;
   kolImage: UploadedMedia | null;
   activeTime: number; // 0 to 6 in seconds
-  onTimeChange?: (time: number) => void;
+  onTimeChange: (time: number) => void;
 }
 
 export const VideoPlayer: React.FC<VideoPlayerProps> = ({
@@ -20,17 +20,14 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
   onTimeChange
 }) => {
   const [isPlaying, setIsPlaying] = useState(false);
-  const [currentTime, setCurrentTime] = useState(0);
   const [isMuted, setIsMuted] = useState(false);
   const animationRef = useRef<number | null>(null);
   const lastTimeRef = useRef<number | null>(null);
+  const currentTimeRef = useRef<number>(activeTime);
 
-  // Sync internal time with parent activeTime if passed
   useEffect(() => {
-    if (activeTime !== undefined && !isPlaying) {
-      setCurrentTime(activeTime);
-    }
-  }, [activeTime, isPlaying]);
+    currentTimeRef.current = activeTime;
+  }, [activeTime]);
 
   // Handle Playback loop (6 seconds)
   useEffect(() => {
@@ -45,13 +42,12 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
       const delta = (timestamp - lastTimeRef.current) / 1000;
       lastTimeRef.current = timestamp;
 
-      setCurrentTime((prev) => {
-        const nextTime = prev + delta;
-        if (nextTime >= 6) {
-          return 0; // loop
-        }
-        return nextTime;
-      });
+      let nextTime = currentTimeRef.current + delta;
+      if (nextTime >= 6) {
+        nextTime = 0; // loop
+      }
+      currentTimeRef.current = nextTime;
+      onTimeChange(nextTime);
 
       animationRef.current = requestAnimationFrame(animate);
     };
@@ -61,19 +57,15 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
     return () => {
       if (animationRef.current) cancelAnimationFrame(animationRef.current);
     };
-  }, [isPlaying]);
-
-  // Notify parent of time change for storyboard highlight
-  useEffect(() => {
-    onTimeChange?.(currentTime);
-  }, [currentTime, onTimeChange]);
+  }, [isPlaying, onTimeChange]);
 
   const togglePlay = () => {
     setIsPlaying(!isPlaying);
   };
 
   const handleRestart = () => {
-    setCurrentTime(0);
+    onTimeChange(0);
+    currentTimeRef.current = 0;
     setIsPlaying(true);
   };
 
@@ -86,7 +78,7 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
     return { tag: '5–6s', name: 'CTA MUA NGAY', color: 'bg-rose-500' };
   };
 
-  const currentScene = getActiveSceneName(currentTime);
+  const currentScene = getActiveSceneName(activeTime);
 
   return (
     <div className="flex flex-col items-center">
@@ -140,9 +132,9 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
             /* Completed Interactive Dynamic 6-Second Simulation */
             <div className="relative w-full h-full bg-gradient-to-b from-slate-900 via-indigo-950 to-slate-900 select-none">
               
-              {/* Dynamic Scene Overlays depending on currentTime */}
+              {/* Dynamic Scene Overlays depending on activeTime */}
               {/* Scene 1: 0 - 1s HOOK */}
-              {currentTime < 1 && (
+              {activeTime < 1 && (
                 <div className="absolute inset-0 flex flex-col items-center justify-center p-4 text-center animate-fade-in">
                   <div className="relative mb-4 scale-110 transition-transform">
                     <img
@@ -163,7 +155,7 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
               )}
 
               {/* Scene 2: 1 - 2s INTRO */}
-              {currentTime >= 1 && currentTime < 2 && (
+              {activeTime >= 1 && activeTime < 2 && (
                 <div className="absolute inset-0 flex flex-col items-center justify-center p-4 text-center">
                   <div className="w-32 h-44 rounded-lg overflow-hidden shadow-2xl border-2 border-brand-400/70 mb-3 animate-bounce">
                     <img
@@ -182,7 +174,7 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
               )}
 
               {/* Scene 3: 2 - 4s KOL INTERACTION */}
-              {currentTime >= 2 && currentTime < 4 && (
+              {activeTime >= 2 && activeTime < 4 && (
                 <div className="absolute inset-0 flex flex-col items-center justify-center p-4">
                   <div className="relative w-44 h-56 rounded-2xl overflow-hidden border-2 border-purple-400 shadow-2xl">
                     <img
@@ -205,7 +197,7 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
               )}
 
               {/* Scene 4: 4 - 5s HIGHLIGHTS */}
-              {currentTime >= 4 && currentTime < 5 && (
+              {activeTime >= 4 && activeTime < 5 && (
                 <div className="absolute inset-0 flex flex-col items-center justify-center p-5 text-left space-y-2">
                   <div className="w-full bg-black/75 backdrop-blur-md p-3.5 rounded-2xl border border-emerald-400/60 space-y-2 text-white">
                     <div className="text-xs font-black text-emerald-400 flex items-center gap-1.5">
@@ -231,7 +223,7 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
               )}
 
               {/* Scene 5: 5 - 6s CTA */}
-              {currentTime >= 5 && (
+              {activeTime >= 5 && (
                 <div className="absolute inset-0 flex flex-col items-center justify-center p-4 text-center space-y-3">
                   <div className="w-24 h-32 rounded-lg overflow-hidden shadow-xl border border-rose-400/80 mb-1">
                     <img
@@ -269,10 +261,11 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
               min="0"
               max="6"
               step="0.05"
-              value={currentTime}
+              value={activeTime}
               onChange={(e) => {
                 const val = parseFloat(e.target.value);
-                setCurrentTime(val);
+                currentTimeRef.current = val;
+                onTimeChange(val);
               }}
               disabled={!isCompleted}
               className="w-full h-1.5 bg-slate-700 rounded-lg appearance-none cursor-pointer accent-brand-500 disabled:opacity-50"
@@ -301,7 +294,7 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
               </button>
 
               <span className="font-mono text-[11px] text-slate-300">
-                00:0{Math.floor(currentTime)} / 00:06
+                00:0{Math.floor(activeTime)} / 00:06
               </span>
             </div>
 
